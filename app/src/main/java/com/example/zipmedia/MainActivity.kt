@@ -122,7 +122,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 ArchiveBrowserActivity.start(this@MainActivity, cache.absolutePath, displayName)
             } catch (e: Exception) {
-                Toast.makeText(this, "打开失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, "打开失败: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
