@@ -58,8 +58,6 @@ class VideoPlayerActivity : AppCompatActivity() {
         binding.playerView.setShowFastForwardButton(false)
         binding.playerView.setShowNextButton(false)
         binding.playerView.setShowPreviousButton(false)
-        // 隐藏 PlayerView 内置的播放/暂停按钮（避免与下方重复）
-        binding.playerView.setShowPlayButton(false)
 
         // 顶部信息栏 + 底部控制栏 与 PlayerView 内置控制条联动显隐
         binding.playerView.setControllerVisibilityListener(
