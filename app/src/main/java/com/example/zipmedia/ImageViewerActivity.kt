@@ -42,6 +42,7 @@ class ImageViewerActivity : AppCompatActivity() {
     private var imageMode = ImageMode.SMART
     private var sourceW = 0
     private var sourceH = 0
+    private var rotation = 0 // 0/90/180/270 度
 
     private val hideBarsRunnable = Runnable { hideBars() }
 
@@ -77,10 +78,21 @@ class ImageViewerActivity : AppCompatActivity() {
             applyMode();
         }
 
+        // 强制旋转按钮：每次顺时针 90 度（锁定屏幕方向时也生效）
+        binding.btnRotate.setOnClickListener {
+            rotation = (rotation + 90) % 360
+            val iv = adapter?.currentHolder?.binding?.imageView ?: return@setOnClickListener
+            iv.setOrientation(rotation)
+            applyMode()
+        }
+
         adapter = PagerAdapter()
         binding.pager.adapter = adapter
         binding.pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
+                // 切换图片时重置旋转角度
+                rotation = 0
+                adapter?.currentHolder?.binding?.imageView?.setOrientation(0)
                 updateHeader(position)
                 applyMode()
             }
@@ -133,9 +145,11 @@ class ImageViewerActivity : AppCompatActivity() {
         val vw = iv.width
         val vh = iv.height
         if (vw <= 0 || vh <= 0) return
+        // 旋转 90/270 度时，宽高互换
+        val (sw, sh) = if (rotation == 90 || rotation == 270) sourceH to sourceW else sourceW to sourceH
         val scale = when (imageMode) {
-            ImageMode.SMART -> minOf(vw.toFloat() / sourceW, vh.toFloat() / sourceH)
-            ImageMode.FILL -> maxOf(vw.toFloat() / sourceW, vh.toFloat() / sourceH)
+            ImageMode.SMART -> minOf(vw.toFloat() / sw, vh.toFloat() / sh)
+            ImageMode.FILL -> maxOf(vw.toFloat() / sw, vh.toFloat() / sh)
             ImageMode.FULL -> 1f
         }
         iv.animateScaleAndCenter(scale.coerceAtLeast(0.01f), null)
@@ -176,6 +190,8 @@ class ImageViewerActivity : AppCompatActivity() {
                         sourceW = bmp.width
                         sourceH = bmp.height
                         holder.binding.imageView.setImage(ImageSource.bitmap(bmp))
+                        // 应用当前旋转角度
+                        holder.binding.imageView.setOrientation(rotation)
                         if (holder === currentHolder) applyMode()
                     } else {
                         holder.binding.tvError.visibility = View.VISIBLE
