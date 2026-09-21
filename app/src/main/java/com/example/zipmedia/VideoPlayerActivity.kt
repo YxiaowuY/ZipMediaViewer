@@ -68,6 +68,13 @@ class VideoPlayerActivity : AppCompatActivity() {
 
         binding.btnSpeed.setOnClickListener { cycleSpeed() }
 
+        // 强制旋转按钮：每次顺时针 90 度（锁定屏幕方向时也生效）
+        binding.btnRotate.setOnClickListener {
+            val cur = binding.playerView.rotation
+            binding.playerView.rotation = (cur + 90f) % 360f
+            showBars()
+        }
+
         // 底部按钮（快退/快进固定 10 秒，位置已在毫秒空间，计算正确）
         binding.btnRewind.setOnClickListener {
             player?.let {
