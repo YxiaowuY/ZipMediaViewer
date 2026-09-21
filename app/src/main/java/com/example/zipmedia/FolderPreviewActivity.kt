@@ -12,6 +12,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.zipmedia.data.ArchiveLoader
 import com.example.zipmedia.data.HistoryRepository
 import com.example.zipmedia.databinding.ActivityFolderPreviewBinding
+import com.example.zipmedia.ui.ArchiveListAdapter
+import com.example.zipmedia.util.ArchiveFileInfo
 import com.example.zipmedia.util.Prefs
 import com.example.zipmedia.util.StorageUtils
 import kotlinx.coroutines.Dispatchers
@@ -88,7 +90,7 @@ class FolderPreviewActivity : AppCompatActivity() {
     }
 
     /** 打开选中的压缩包：复制到缓存 → 记录历史 → 进入浏览页 */
-    private fun openArchive(info: StorageUtils.ArchiveFileInfo) {
+    private fun openArchive(info: ArchiveFileInfo) {
         lifecycleScope.launch {
             try {
                 val cache = withContext(Dispatchers.IO) {
