@@ -49,6 +49,15 @@
             android:text="@string/action_open_history" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnFavorites"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:icon="@drawable/ic_folder"
+            android:text="@string/action_favorites" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnClearCache"
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="match_parent"
