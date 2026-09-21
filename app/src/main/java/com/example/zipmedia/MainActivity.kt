@@ -93,6 +93,8 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnClearCache.setOnClickListener { showClearCacheDialog() }
 
+        binding.tvVersion.text = "v${BuildConfig.VERSION_NAME}"
+
         observeHistory()
         handleIncomingIntent()
     }
