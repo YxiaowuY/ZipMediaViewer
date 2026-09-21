@@ -3,8 +3,8 @@ package com.example.zipmedia
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.GestureDetector
-import android.view.MotionEvent
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
@@ -44,6 +44,12 @@ class ImageViewerActivity : AppCompatActivity() {
     private var sourceH = 0
 
     private val hideBarsRunnable = Runnable { hideBars() }
+
+    // 双击检测：记录上次点击时间，300ms 内再点即双击
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var lastClickTime = 0L
+    private var lastClickRunnable: Runnable? = null
+    private val DOUBLE_TAP_TIMEOUT = 300L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,6 +101,7 @@ class ImageViewerActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         binding.topBar.removeCallbacks(hideBarsRunnable)
+        mainHandler.removeCallbacksAndMessages(null)
         Immersive.exit(this)
         super.onDestroy()
     }
@@ -185,26 +192,28 @@ class ImageViewerActivity : AppCompatActivity() {
 
     private class PageHolder(val binding: ItemImagePageBinding) : RecyclerView.ViewHolder(binding.root)
 
-    /** 为单页图片绑定单击切换界面；双击/双指缩放由库内置处理，避免手势冲突 */
+    /**
+     * 为单页图片绑定单击/双击处理。
+     * 不使用 GestureDetector——SubsamplingScaleImageView 内部有自己的双击缩放手势检测，
+     * 会抢先消费双击事件，导致外层 GestureDetector 的 onDoubleTap 永远不触发。
+     * 这里用"两次点击间隔 < 300ms 即双击"的原始方案，与库内部手势完全不冲突。
+     */
     private fun attachZoomAndTap(holder: PageHolder) {
         val imageView = holder.binding.imageView
-        val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
-            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-                toggleBars()
-                return true
-            }
-
-            override fun onDoubleTap(e: MotionEvent): Boolean {
+        imageView.setOnClickListener {
+            val now = System.currentTimeMillis()
+            if (now - lastClickTime < DOUBLE_TAP_TIMEOUT) {
+                // 双击：立即显示操作栏，并取消待执行的单击 toggleBars
+                lastClickRunnable?.let { mainHandler.removeCallbacks(it) }
+                lastClickRunnable = null
+                lastClickTime = 0L
                 showBars()
-                return true
+            } else {
+                // 可能是单击（等 300ms 确认不是双击后再 toggleBars）
+                lastClickTime = now
+                lastClickRunnable = Runnable { toggleBars(); lastClickRunnable = null }
+                mainHandler.postDelayed(lastClickRunnable!!, DOUBLE_TAP_TIMEOUT)
             }
-        })
-        holder.binding.root.setOnTouchListener { _, event ->
-            detector.onTouchEvent(event)
-            if (event.action == MotionEvent.ACTION_UP) {
-                holder.binding.root.performClick()
-            }
-            imageView.dispatchTouchEvent(event)
         }
     }
 
