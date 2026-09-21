@@ -4,6 +4,7 @@
     <!-- 主界面 -->
     <string name="action_open_archive">打开压缩包</string>
     <string name="action_choose_folder">选择预览文件夹</string>
+    <string name="action_open_folder">打开预览文件夹</string>
     <string name="history_label">历史记录</string>
     <string name="history_empty">暂无历史记录\n点击上方按钮打开一个压缩包</string>
     <string name="history_clear">清空</string>
