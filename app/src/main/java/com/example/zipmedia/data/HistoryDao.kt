@@ -23,4 +23,8 @@ interface HistoryDao {
 
     @Query("SELECT COUNT(*) FROM history")
     suspend fun count(): Int
+
+    /** 一次性查询全部历史（onResume 主动拉取，不依赖 Flow 自动触发） */
+    @Query("SELECT * FROM history ORDER BY openedAt DESC")
+    suspend fun getAll(): List<HistoryEntity>
 }
