@@ -1,0 +1,15 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- 应用主题：无 ActionBar（用自定义顶栏），支持沉浸布局 -->
+    <style name="Theme.ZipMedia" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/purple_500</item>
+        <item name="colorPrimaryDark">@color/black</item>
+        <item name="colorAccent">@color/purple_500</item>
+        <item name="android:windowBackground">@android:color/white</item>
+    </style>
+
+    <!-- 全屏沉浸（图片查看 / 视频播放） -->
+    <style name="Theme.ZipMedia.Fullscreen">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowBackground">@color/screen_black</item>
+    </style>
+</resources>

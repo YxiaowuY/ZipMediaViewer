@@ -1,0 +1,48 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name">压缩包媒体查看器</string>
+
+    <!-- 主界面 -->
+    <string name="action_open_archive">打开压缩包</string>
+    <string name="action_choose_folder">选择预览文件夹</string>
+    <string name="history_label">历史记录</string>
+    <string name="history_empty">暂无历史记录\n点击上方按钮打开一个压缩包</string>
+    <string name="history_clear">清空</string>
+    <string name="confirm_clear_history">确定清空全部历史记录吗？</string>
+    <string name="action_clear_cache">清理缓存</string>
+    <string name="confirm_clear_cache">当前视频缓存占用 %1$s。\n确定清理吗？（仅清除临时视频，保留压缩包与历史记录）</string>
+    <string name="clear_cache_done">缓存已清理</string>
+    <string name="speed_hint">速度</string>
+    <string name="total_entries">%1$d 个条目</string>
+    <string name="opened_at">%1$s 打开</string>
+
+    <!-- 浏览页 -->
+    <string name="sort_cycle_hint">排序</string>
+    <string name="filter_cycle_hint">筛选</string>
+    <string name="back_to_main">返回</string>
+    <string name="no_media">压缩包内没有找到图片或视频</string>
+    <string name="show_all_switch">仅显示媒体</string>
+
+    <!-- 图片查看器 -->
+    <string name="loading_image">加载图片中…</string>
+    <string name="load_image_failed">图片加载失败</string>
+    <string name="tip_zoom">双击或双指缩放 · 左右滑动切换</string>
+
+    <!-- 视频播放 -->
+    <string name="preparing_video">正在准备播放…</string>
+    <string name="extract_failed">视频抽取失败</string>
+
+    <!-- 通用 -->
+    <string name="cancel">取消</string>
+    <string name="ok">确定</string>
+    <string name="choose">选择</string>
+    <string name="error">错误</string>
+    <string name="empty">空</string>
+    <string name="none_archive_found">所选文件夹中没有找到压缩包</string>
+    <string name="archive_pick_title">选择要打开的压缩包</string>
+    <string name="all_media">全部媒体</string>
+    <string name="image_only">仅图片</string>
+    <string name="video_only">仅视频</string>
+
+    <!-- 权限说明（预留） -->
+    <string name="extract_video_tip">视频需要先抽取到本地缓存才能播放，稍等片刻</string>
+</resources>
