@@ -16,6 +16,7 @@ import com.example.zipmedia.data.HistoryRepository
 import com.example.zipmedia.databinding.ActivityMainBinding
 import com.example.zipmedia.ui.HistoryAdapter
 import com.example.zipmedia.util.CacheUtils
+import com.example.zipmedia.util.Prefs
 import com.example.zipmedia.util.StorageUtils
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
@@ -35,8 +36,20 @@ class MainActivity : AppCompatActivity() {
 
     private val folderLauncher =
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-            uri?.let { openFolder(it) }
+            uri?.let {
+                // 记忆选择的位置，下次点“打开预览文件夹”直接进入
+                runCatching {
+                    contentResolver.takePersistableUriPermission(
+                        it, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    )
+                }
+                Prefs.setLastFolderUri(this, it.toString())
+                openFolder(it)
+            }
         }
+
+    private fun baseFolderUri(): Uri =
+        Uri.parse("content://com.android.externalstorage.documents/")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,10 +69,18 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        binding.btnChooseFolder.setOnClickListener {
-            folderLauncher.launch(
-                Uri.parse("content://com.android.externalstorage.documents/")
-            )
+        // 主体按钮：若已记忆预览文件夹则直接打开它，否则先选择文件夹
+        binding.btnOpenFolder.setOnClickListener {
+            val saved = Prefs.lastFolderUri(this)
+            if (saved != null) {
+                openFolder(Uri.parse(saved))
+            } else {
+                folderLauncher.launch(baseFolderUri())
+            }
+        }
+        // 修改预览文件夹位置
+        binding.btnChangeFolder.setOnClickListener {
+            folderLauncher.launch(baseFolderUri())
         }
 
         binding.tvClearHistory.setOnClickListener {
