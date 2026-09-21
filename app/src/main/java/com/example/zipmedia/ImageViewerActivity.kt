@@ -29,9 +29,21 @@ class ImageViewerActivity : AppCompatActivity() {
     private lateinit var cacheFile: java.io.File
     private lateinit var images: List<ArchiveEntry>
     private var startIndex: Int = 0
-    private var barsVisible = true
+    private var barsVisible = false // 顶栏默认隐藏，全屏沉浸
+    private var adapter: PagerAdapter? = null
 
     private val IMG_MAX = 80L * 1024 * 1024 // 单张超过约 80MB 则放弃整图加载
+
+    /** 图片显示模式：智能=自适应完整显示；完整=原图1:1；铺满=铺满屏幕 */
+    private enum class ImageMode(val label: String) {
+        SMART("智能"), FULL("完整"), FILL("铺满")
+    }
+
+    private var imageMode = ImageMode.SMART
+    private var sourceW = 0
+    private var sourceH = 0
+
+    private val hideBarsRunnable = Runnable { hideBars() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,16 +60,30 @@ class ImageViewerActivity : AppCompatActivity() {
 
         binding.btnBack.setOnClickListener { finish() }
 
-        binding.pager.adapter = PagerAdapter()
+        binding.btnMode.text = imageMode.label
+        binding.btnMode.setOnClickListener {
+            imageMode = when (imageMode) {
+                ImageMode.SMART -> ImageMode.FULL
+                ImageMode.FULL -> ImageMode.FILL
+                ImageMode.FILL -> ImageMode.SMART
+            }
+            binding.btnMode.text = imageMode.label
+            applyMode();
+        }
+
+        adapter = PagerAdapter()
+        binding.pager.adapter = adapter
         binding.pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 updateHeader(position)
+                applyMode()
             }
         })
         if (images.indices.contains(startIndex)) {
             binding.pager.setCurrentItem(startIndex, false)
         }
         updateHeader(startIndex)
+        hideBars()
     }
 
     private fun updateHeader(position: Int) {
@@ -68,30 +94,81 @@ class ImageViewerActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        binding.topBar.removeCallbacks(hideBarsRunnable)
         Immersive.exit(this)
         super.onDestroy()
     }
 
+    // 顶栏与系统栏：默认全屏隐藏；单击(或点左上/右上区域)显示，3 秒后自动隐藏
     private fun toggleBars() {
-        barsVisible = !barsVisible
-        if (barsVisible) Immersive.enter(this) else Immersive.exit(this)
-        val v = if (barsVisible) View.VISIBLE else View.GONE
-        binding.topBar.visibility = v
-        binding.tvHint.visibility = v
+        if (barsVisible) hideBars() else showBars()
+    }
+
+    private fun showBars() {
+        barsVisible = true
+        binding.topBar.visibility = View.VISIBLE
+        binding.tvHint.visibility = View.VISIBLE
+        binding.topBar.removeCallbacks(hideBarsRunnable)
+        binding.topBar.postDelayed(hideBarsRunnable, 3000)
+    }
+
+    private fun hideBars() {
+        barsVisible = false
+        binding.topBar.visibility = View.GONE
+        binding.tvHint.visibility = View.GONE
+    }
+
+    /** 把当前模式应用到当前页图片 */
+    private fun applyMode() {
+        val holder = adapter?.currentHolder ?: return
+        val iv = holder.binding.imageView
+        if (sourceW <= 0 || sourceH <= 0) return
+        val vw = iv.width
+        val vh = iv.height
+        if (vw <= 0 || vh <= 0) return
+        val scale = when (imageMode) {
+            ImageMode.SMART -> minOf(vw.toFloat() / sourceW, vh.toFloat() / sourceH)
+            ImageMode.FILL -> maxOf(vw.toFloat() / sourceW, vh.toFloat() / sourceH)
+            ImageMode.FULL -> 1f
+        }
+        iv.setScaleAndCenter(
+            scale.coerceAtLeast(0.01f),
+            com.davemorrissey.labs.subscaleview.PointF.of(vw / 2f, vh / 2f),
+            true
+        )
     }
 
     private inner class PagerAdapter : RecyclerView.Adapter<PageHolder>() {
         private val loaded = BooleanArray(images.size)
+        var currentHolder: PageHolder? = null
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PageHolder {
             val holder = PageHolder(
                 ItemImagePageBinding.inflate(layoutInflater, parent, false)
             )
             attachZoomAndTap(holder)
+            holder.binding.imageView.setOnImageEventListener(
+                object : com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.OnImageEventListener {
+                    override fun onReady(event: com.davemorrissey.labs.subscaleview.ImageViewEvent) {
+                        sourceW = event.sWidth
+                        sourceH = event.sHeight
+                        if (holder === currentHolder) applyMode()
+                    }
+                    override fun onImageLoaded(
+                        position: com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.Position?,
+                        correctWidth: Boolean
+                    ) {}
+                    override fun onPreviewLoadError(e: Exception) {}
+                    override fun onImageLoadError(e: Exception) {}
+                    override fun onTileLoadError(e: Exception) {}
+                    override fun onTileLoaded() {}
+                }
+            )
             return holder
         }
 
         override fun onBindViewHolder(holder: PageHolder, position: Int) {
+            currentHolder = holder
             if (loaded[position]) return
             holder.binding.progress.visibility = View.VISIBLE
             holder.binding.tvError.visibility = View.GONE
@@ -132,6 +209,11 @@ class ImageViewerActivity : AppCompatActivity() {
         val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
                 toggleBars()
+                return true
+            }
+
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                showBars()
                 return true
             }
         })
