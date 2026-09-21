@@ -38,13 +38,14 @@ class VideoPlayerActivity : AppCompatActivity() {
     private var speedIndex = 2 // 默认 1.0x
 
     private val handler = Handler(Looper.getMainLooper())
-    private var isSeeking = false
+    private var isSeeking = false       // 用户正在拖动或 seek 还未完成
+    private var pendingSeekMs = -1L     // 用户 seek 的目标位置（毫秒）
     private var barsVisible = false
     private val hideBarsRunnable = Runnable { hideBars() }
     private val updateProgressRunnable = object : Runnable {
         override fun run() {
             updateProgress()
-            if (!isSeeking) handler.postDelayed(this, 300)
+            handler.postDelayed(this, 300)
         }
     }
 
@@ -65,10 +66,9 @@ class VideoPlayerActivity : AppCompatActivity() {
 
         updateSpeedLabel()
 
-        // 顶部栏：返回 + 文件名 + 倍速胶囊
         binding.btnSpeed.setOnClickListener { cycleSpeed() }
 
-        // 底部按钮
+        // 底部按钮（快退/快进固定 10 秒，位置已在毫秒空间，计算正确）
         binding.btnRewind.setOnClickListener {
             player?.let {
                 val pos = (it.currentPosition - 10_000L).coerceAtLeast(0L)
@@ -88,12 +88,13 @@ class VideoPlayerActivity : AppCompatActivity() {
         }
 
         // SeekBar 拖动
+        // SeekBar max = duration/1000（单位：秒），progress 也是秒
+        // seek 位置（毫秒）= progress * 1000L
         binding.seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    val duration = player?.duration ?: 0L
-                    val pos = (progress * duration / 1000L).coerceAtLeast(0L)
-                    binding.tvCurrentTime.text = formatTime(pos)
+                    // 秒 → 毫秒
+                    binding.tvCurrentTime.text = formatTime(progress * 1000L)
                 }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
@@ -102,23 +103,20 @@ class VideoPlayerActivity : AppCompatActivity() {
                 showBars()
             }
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                // 保持 isSeeking=true，防止 updateProgress 用旧 currentPosition 回拉 SeekBar
-                // 等 seekTo 异步生效后再恢复进度更新
-                val duration = player?.duration ?: 0L
-                if (duration > 0) {
-                    val pos = (seekBar?.progress ?: 0) * duration / 1000L
-                    player?.seekTo(pos)
-                }
-                // 延迟 600ms 恢复进度更新，给 seekTo 足够时间生效
-                handler.postDelayed({
+                val p = player
+                if (p != null && p.duration > 0) {
+                    // progress 是秒，×1000 = 毫秒
+                    val posMs = (seekBar?.progress ?: 0) * 1000L
+                    pendingSeekMs = posMs
+                    p.seekTo(posMs)
+                    // seekTo 是异步的，保持 isSeeking=true 等 onSeekCompleted 回调再解锁
+                } else {
                     isSeeking = false
-                    handler.post(updateProgressRunnable)
-                }, 600)
+                }
                 showBars()
             }
         })
 
-        // 点击视频画面切换控制条显隐
         binding.playerView.setOnClickListener {
             if (barsVisible) hideBars() else showBars()
         }
@@ -165,12 +163,13 @@ class VideoPlayerActivity : AppCompatActivity() {
         val duration = p.duration
         if (duration <= 0) return
         val pos = p.currentPosition.coerceAtLeast(0L)
-        // max 只在 duration 就绪时设一次
-        if (binding.seekBar.max != (duration / 1000L).toInt()) {
-            binding.seekBar.max = (duration / 1000L).toInt()
+        // max = duration / 1000，单位秒，只设一次
+        val expectedMax = (duration / 1000L).toInt()
+        if (binding.seekBar.max != expectedMax) {
+            binding.seekBar.max = expectedMax
             binding.tvTotalTime.text = formatTime(duration)
         }
-        // 拖动期间不覆盖用户设置的 SeekBar progress
+        // 用户拖动或 seek 未完成期间，不覆盖用户设置的位置
         if (!isSeeking) {
             binding.seekBar.progress = (pos / 1000L).toInt().coerceAtMost(binding.seekBar.max)
             binding.tvCurrentTime.text = formatTime(pos)
@@ -214,6 +213,16 @@ class VideoPlayerActivity : AppCompatActivity() {
                     updateProgress()
                     handler.post(updateProgressRunnable)
                     showBars()
+                }
+            }
+            // seek 真正完成后才解锁 isSeeking
+            // 如果目标位置尚未就绪（需缓冲），ExoPlayer 会先缓冲，
+            // onSeekCompleted 会等缓冲好才触发，期间 SeekBar 保持用户设定的位置不动
+            override fun onSeekCompleted() {
+                if (isSeeking) {
+                    isSeeking = false
+                    pendingSeekMs = -1L
+                    updateProgress()
                 }
             }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
