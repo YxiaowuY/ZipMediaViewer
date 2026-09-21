@@ -107,6 +107,16 @@
             android:clipToPadding="false"
             android:paddingBottom="96dp" />
 
+        <TextView
+            android:id="@+id/tvVersion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="16dp"
+            android:text="v1.0.0"
+            android:textColor="#BBBBBB"
+            android:textSize="12sp" />
+
         <LinearLayout
             android:id="@+id/emptyContainer"
             android:layout_width="match_parent"
