@@ -102,13 +102,18 @@ class VideoPlayerActivity : AppCompatActivity() {
                 showBars()
             }
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                isSeeking = false
+                // 保持 isSeeking=true，防止 updateProgress 用旧 currentPosition 回拉 SeekBar
+                // 等 seekTo 异步生效后再恢复进度更新
                 val duration = player?.duration ?: 0L
                 if (duration > 0) {
                     val pos = (seekBar?.progress ?: 0) * duration / 1000L
                     player?.seekTo(pos)
                 }
-                handler.post(updateProgressRunnable)
+                // 延迟 600ms 恢复进度更新，给 seekTo 足够时间生效
+                handler.postDelayed({
+                    isSeeking = false
+                    handler.post(updateProgressRunnable)
+                }, 600)
                 showBars()
             }
         })
@@ -158,12 +163,17 @@ class VideoPlayerActivity : AppCompatActivity() {
     private fun updateProgress() {
         val p = player ?: return
         val duration = p.duration
-        if (duration > 0 && !isSeeking) {
-            val pos = p.currentPosition.coerceAtLeast(0L)
+        if (duration <= 0) return
+        val pos = p.currentPosition.coerceAtLeast(0L)
+        // max 只在 duration 就绪时设一次
+        if (binding.seekBar.max != (duration / 1000L).toInt()) {
             binding.seekBar.max = (duration / 1000L).toInt()
-            binding.seekBar.progress = (pos / 1000L).toInt()
-            binding.tvCurrentTime.text = formatTime(pos)
             binding.tvTotalTime.text = formatTime(duration)
+        }
+        // 拖动期间不覆盖用户设置的 SeekBar progress
+        if (!isSeeking) {
+            binding.seekBar.progress = (pos / 1000L).toInt().coerceAtMost(binding.seekBar.max)
+            binding.tvCurrentTime.text = formatTime(pos)
         }
     }
 
