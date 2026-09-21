@@ -19,8 +19,11 @@ class RarArchiveReader(private val file: File) : ArchiveReader {
 
     override fun entries(): List<ArchiveEntry> {
         val result = ArrayList<ArchiveEntry>(64)
+        val seen = HashSet<String>()
         for (header: FileHeader in headers) {
             val path = header.fileNameString
+            // junrar 某些版本可能返回重复 FileHeader，按 path 去重
+            if (!seen.add(path)) continue
             // junrar 不同版本的 mTime 类型不一致，这里统一不读取修改时间（排序仍可按名称/大小）
             val modified = 0L
             result.add(
