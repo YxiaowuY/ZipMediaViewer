@@ -15,8 +15,11 @@ class ZipArchiveReader(private val file: File) : ArchiveReader {
 
     override fun entries(): List<ArchiveEntry> {
         val result = ArrayList<ArchiveEntry>(64)
+        val seen = HashSet<String>()
         zip.entries()?.asSequence()?.forEach { entry ->
             val path = entry.name
+            // 某些 ZIP 工具会写入重名条目，按 path 去重避免列表重复
+            if (!seen.add(path)) return@forEach
             result.add(
                 ArchiveEntry(
                     path = path,
