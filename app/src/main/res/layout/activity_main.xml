@@ -29,14 +29,32 @@
             app:icon="@drawable/ic_folder"
             android:text="@string/action_open_archive" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnChooseFolder"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        <!-- 预览文件夹：主体=打开已记忆的文件夹，右侧图标=修改文件夹位置 -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            app:icon="@drawable/ic_folder"
-            android:text="@string/action_choose_folder" />
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOpenFolder"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                app:icon="@drawable/ic_folder"
+                android:text="@string/action_open_folder" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnChangeFolder"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:minWidth="48dp"
+                app:icon="@drawable/ic_edit"
+                android:text="" />
+        </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnClearCache"
