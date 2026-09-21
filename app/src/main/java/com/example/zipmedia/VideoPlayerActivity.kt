@@ -210,19 +210,15 @@ class VideoPlayerActivity : AppCompatActivity() {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY) {
                     binding.loadingOverlay.visibility = View.GONE
+                    // seek 完成检测：seekTo 后 player 会先 BUFFERING 再回到 READY
+                    // 此时 isSeeking=true 说明是 seek 完成，解锁让进度条开始跟随 player
+                    if (isSeeking) {
+                        isSeeking = false
+                        pendingSeekMs = -1L
+                    }
                     updateProgress()
                     handler.post(updateProgressRunnable)
                     showBars()
-                }
-            }
-            // seek 真正完成后才解锁 isSeeking
-            // 如果目标位置尚未就绪（需缓冲），ExoPlayer 会先缓冲，
-            // onSeekCompleted 会等缓冲好才触发，期间 SeekBar 保持用户设定的位置不动
-            override fun onSeekCompleted() {
-                if (isSeeking) {
-                    isSeeking = false
-                    pendingSeekMs = -1L
-                    updateProgress()
                 }
             }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
