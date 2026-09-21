@@ -116,6 +116,18 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // 诊断：返回主页时主动查一次数据库条数，Toast 提示
+        lifecycleScope.launch {
+            val total = withContext(Dispatchers.IO) { repo.count() }
+            android.util.Log.d("ZipMedia", "onResume: 数据库当前共 $total 条历史")
+            if (total == 0) {
+                Toast.makeText(this@MainActivity, "历史为空（数据库 0 条）", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun observeHistory() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -143,16 +155,21 @@ class MainActivity : AppCompatActivity() {
                 // 历史记录单独 try-catch，避免被外层吞掉错误
                 val recorded = withContext(Dispatchers.IO) {
                     runCatching {
-                        repo.record(displayName, cache.absolutePath, count)
+                        val rowId = repo.record(displayName, cache.absolutePath, count)
+                        val total = repo.count()
+                        android.util.Log.d("ZipMedia", "历史已记录 rowId=$rowId 当前共 $total 条, name=$displayName, path=${cache.absolutePath}")
+                        // 显式反馈：让用户能立刻看到结果
+                        runOnUiThread {
+                            Toast.makeText(this@MainActivity, "已记录历史（共 $total 条）", Toast.LENGTH_LONG).show()
+                        }
                         true
                     }.getOrElse { e ->
                         android.util.Log.e("ZipMedia", "历史记录写入失败: ${e.message}", e)
-                        Toast.makeText(this@MainActivity, "历史记录失败: ${e.message}", Toast.LENGTH_LONG).show()
+                        runOnUiThread {
+                            Toast.makeText(this@MainActivity, "历史记录失败: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
                         false
                     }
-                }
-                if (recorded) {
-                    android.util.Log.d("ZipMedia", "历史已记录: $displayName -> ${cache.absolutePath}")
                 }
                 ArchiveBrowserActivity.start(this@MainActivity, cache.absolutePath, displayName)
             } catch (e: Exception) {
