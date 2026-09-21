@@ -10,8 +10,8 @@ class HistoryRepository(context: Context) {
 
     fun all(): Flow<List<HistoryEntity>> = dao.flowAll()
 
-    suspend fun record(displayName: String, cachePath: String, entryCount: Int) {
-        dao.upsert(
+    suspend fun record(displayName: String, cachePath: String, entryCount: Int): Long {
+        return dao.upsert(
             HistoryEntity(
                 displayName = displayName,
                 cachePath = cachePath,
@@ -20,6 +20,9 @@ class HistoryRepository(context: Context) {
             )
         )
     }
+
+    /** 诊断用：返回当前数据库条数 */
+    suspend fun count(): Int = dao.count()
 
     /** 重开历史压缩包时刷新时间 */
     suspend fun touch(entity: HistoryEntity) {
