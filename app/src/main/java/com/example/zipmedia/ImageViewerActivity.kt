@@ -108,7 +108,12 @@ class ImageViewerActivity : AppCompatActivity() {
                 data.onSuccess { bytes ->
                     loaded[position] = true
                     holder.binding.progress.visibility = View.GONE
-                    holder.binding.imageView.setImage(ImageSource.bytes(bytes))
+                    val bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    if (bmp != null) {
+                        holder.binding.imageView.setImage(ImageSource.bitmap(bmp))
+                    } else {
+                        holder.binding.tvError.visibility = View.VISIBLE
+                    }
                 }.onFailure {
                     holder.binding.progress.visibility = View.GONE
                     holder.binding.tvError.visibility = View.VISIBLE
