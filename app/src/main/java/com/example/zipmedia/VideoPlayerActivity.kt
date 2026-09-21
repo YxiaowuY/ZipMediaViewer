@@ -57,8 +57,6 @@ class VideoPlayerActivity : AppCompatActivity() {
         binding.playerView.setShowFastForwardButton(true)
         binding.playerView.setShowNextButton(false)
         binding.playerView.setShowPreviousButton(false)
-        binding.playerView.setRewindIncrementMs(10_000)
-        binding.playerView.setFastForwardIncrementMs(10_000)
 
         binding.btnSpeed.setOnClickListener { cycleSpeed() }
 
