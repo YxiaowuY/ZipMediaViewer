@@ -58,6 +58,13 @@ class VideoPlayerActivity : AppCompatActivity() {
         binding.playerView.setShowNextButton(false)
         binding.playerView.setShowPreviousButton(false)
 
+        // 顶部信息栏与控制条联动显隐（点画面显示，自动/手动隐藏时一起隐藏，符合常规播放器）
+        binding.playerView.setControllerVisibilityListener { visibility ->
+            binding.topBar.visibility = visibility
+        }
+        binding.playerView.setControllerAutoShow(true)
+        // 控制条在画面触摸时切换显隐（默认 3 秒后自动隐藏）
+
         binding.btnSpeed.setOnClickListener { cycleSpeed() }
 
         setupPlayer(entryPath)
@@ -118,7 +125,8 @@ class VideoPlayerActivity : AppCompatActivity() {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY) {
                     binding.loadingOverlay.visibility = View.GONE
-                    binding.topBar.visibility = View.VISIBLE
+                    // 顶栏显隐由控制条联动决定，这里不再强制显示
+                    binding.playerView.showController()
                 }
             }
         })
