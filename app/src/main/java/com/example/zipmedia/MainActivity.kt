@@ -140,8 +140,19 @@ class MainActivity : AppCompatActivity() {
                         ArchiveLoader.open(cache).use { it.entries().size }
                     }.getOrDefault(0)
                 }
-                withContext(Dispatchers.IO) {
-                    repo.record(displayName, cache.absolutePath, count)
+                // 历史记录单独 try-catch，避免被外层吞掉错误
+                val recorded = withContext(Dispatchers.IO) {
+                    runCatching {
+                        repo.record(displayName, cache.absolutePath, count)
+                        true
+                    }.getOrElse { e ->
+                        android.util.Log.e("ZipMedia", "历史记录写入失败: ${e.message}", e)
+                        Toast.makeText(this@MainActivity, "历史记录失败: ${e.message}", Toast.LENGTH_LONG).show()
+                        false
+                    }
+                }
+                if (recorded) {
+                    android.util.Log.d("ZipMedia", "历史已记录: $displayName -> ${cache.absolutePath}")
                 }
                 ArchiveBrowserActivity.start(this@MainActivity, cache.absolutePath, displayName)
             } catch (e: Exception) {
