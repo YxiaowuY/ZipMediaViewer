@@ -45,6 +45,16 @@
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden" />
 
+        <!-- 收藏夹列表 -->
+        <activity android:name=".FavoriteActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
+        <!-- 收藏夹详情 -->
+        <activity android:name=".FavoriteDetailActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
         <activity android:name=".ImageViewerActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden"
