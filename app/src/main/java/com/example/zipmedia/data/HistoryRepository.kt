@@ -10,6 +10,9 @@ class HistoryRepository(context: Context) {
 
     fun all(): Flow<List<HistoryEntity>> = dao.flowAll()
 
+    /** 一次性拉取全部历史，onResume 主动刷新用（不依赖 Flow 自动触发） */
+    suspend fun getAllNow(): List<HistoryEntity> = dao.getAll()
+
     suspend fun record(displayName: String, cachePath: String, entryCount: Int): Long {
         return dao.upsert(
             HistoryEntity(
