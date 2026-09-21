@@ -35,6 +35,16 @@
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize" />
 
+        <!-- 窗口2：预览文件夹列表 -->
+        <activity android:name=".FolderPreviewActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
+        <!-- 窗口3：历史记录列表 -->
+        <activity android:name=".HistoryActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
         <activity android:name=".ImageViewerActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden"
