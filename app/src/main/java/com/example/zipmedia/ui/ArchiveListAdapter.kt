@@ -6,15 +6,15 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.zipmedia.databinding.ItemArchiveBinding
-import com.example.zipmedia.util.StorageUtils
+import com.example.zipmedia.util.ArchiveFileInfo
 
 /**
  * 预览文件夹内压缩包列表的 Adapter。
  * 列表已在上游按 uri 去重，这里只负责展示与点击。
  */
 class ArchiveListAdapter(
-    private val onClick: (StorageUtils.ArchiveFileInfo) -> Unit
-) : ListAdapter<StorageUtils.ArchiveFileInfo, ArchiveListAdapter.VH>(DIFF) {
+    private val onClick: (ArchiveFileInfo) -> Unit
+) : ListAdapter<ArchiveFileInfo, ArchiveListAdapter.VH>(DIFF) {
 
     class VH(val binding: ItemArchiveBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -28,10 +28,10 @@ class ArchiveListAdapter(
     }
 
     companion object {
-        val DIFF = object : DiffUtil.ItemCallback<StorageUtils.ArchiveFileInfo>() {
-            override fun areItemsTheSame(a: StorageUtils.ArchiveFileInfo, b: StorageUtils.ArchiveFileInfo) =
+        val DIFF = object : DiffUtil.ItemCallback<ArchiveFileInfo>() {
+            override fun areItemsTheSame(a: ArchiveFileInfo, b: ArchiveFileInfo) =
                 a.uri == b.uri
-            override fun areContentsTheSame(a: StorageUtils.ArchiveFileInfo, b: StorageUtils.ArchiveFileInfo) =
+            override fun areContentsTheSame(a: ArchiveFileInfo, b: ArchiveFileInfo) =
                 a == b
         }
     }
