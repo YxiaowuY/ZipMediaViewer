@@ -1,139 +1,185 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="@color/screen_black">
 
-    <FrameLayout
+    <!-- 视频画面 -->
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/playerView"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_height="match_parent"
+        android:background="@color/screen_black"
+        app:show_buffering="when_playing"
+        app:resize_mode="fit"
+        app:use_controller="false" />
 
-        <androidx.media3.ui.PlayerView
-            android:id="@+id/playerView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@color/screen_black"
-            app:show_buffering="when_playing"
-            app:resize_mode="fit" />
-
-        <FrameLayout
-            android:id="@+id/loadingOverlay"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#99000000"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <ProgressBar
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-
-                <TextView
-                    android:id="@+id/tvPreparing"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/preparing_video"
-                    android:textColor="@color/white"
-                    android:textSize="15sp" />
-            </LinearLayout>
-        </FrameLayout>
+    <!-- 加载遮罩 -->
+    <FrameLayout
+        android:id="@+id/loadingOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#99000000"
+        android:visibility="gone">
 
         <LinearLayout
-            android:id="@+id/topBar"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="#66000000"
-            android:paddingStart="4dp"
-            android:paddingEnd="12dp"
-            android:visibility="gone">
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center">
 
-            <ImageView
-                android:id="@+id/btnBack"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:src="@android:drawable/ic_menu_revert"
-                android:contentDescription="@string/back_to_main"
-                android:padding="10dp"
-                android:tint="@color/white"
-                android:background="?attr/selectableItemBackgroundBorderless" />
-
+            <ProgressBar android:layout_width="wrap_content" android:layout_height="wrap_content" />
             <TextView
-                android:id="@+id/tvFileName"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textColor="@color/white"
-                android:textSize="15sp"
-                android:singleLine="true"
-                android:ellipsize="middle" />
-
-            <TextView
-                android:id="@+id/btnSpeed"
+                android:id="@+id/tvPreparing"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/speed_hint"
-                android:textColor="#00E676"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:background="?attr/selectableItemBackground"
-                android:padding="10dp" />
+                android:layout_marginTop="12dp"
+                android:text="@string/preparing_video"
+                android:textColor="@color/white"
+                android:textSize="15sp" />
         </LinearLayout>
     </FrameLayout>
 
-    <!-- 视频下方独立控制栏：快退 / 暂停-播放 / 快进 -->
+    <!-- 顶部信息栏：返回 + 文件名 + 倍速胶囊 -->
     <LinearLayout
-        android:id="@+id/bottomControlBar"
+        android:id="@+id/topBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center"
-        android:background="#CC000000"
-        android:paddingTop="6dp"
-        android:paddingBottom="6dp"
-        android:visibility="visible">
+        android:gravity="center_vertical"
+        android:background="@android:color/transparent"
+        android:paddingStart="4dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="4dp"
+        android:visibility="gone">
 
         <ImageView
-            android:id="@+id/btnRewind"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@android:drawable/ic_media_rew"
-            android:contentDescription="快退"
-            android:padding="8dp"
+            android:id="@+id/btnBack"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@android:drawable/ic_menu_revert"
+            android:contentDescription="@string/back_to_main"
+            android:padding="10dp"
             android:tint="@color/white"
             android:background="?attr/selectableItemBackgroundBorderless" />
 
-        <ImageView
-            android:id="@+id/btnPlayPause"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:src="@android:drawable/ic_media_play"
-            android:contentDescription="播放/暂停"
-            android:padding="8dp"
-            android:layout_marginStart="24dp"
-            android:layout_marginEnd="24dp"
-            android:tint="@color/white"
-            android:background="?attr/selectableItemBackgroundBorderless" />
+        <TextView
+            android:id="@+id/tvFileName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/white"
+            android:textSize="15sp"
+            android:singleLine="true"
+            android:ellipsize="middle" />
 
-        <ImageView
-            android:id="@+id/btnFastForward"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@android:drawable/ic_media_ff"
-            android:contentDescription="快进"
-            android:padding="8dp"
-            android:tint="@color/white"
+        <!-- 倍速胶囊：背景透明，白色文字 -->
+        <TextView
+            android:id="@+id/btnSpeed"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:gravity="center"
             android:background="?attr/selectableItemBackgroundBorderless" />
     </LinearLayout>
-</LinearLayout>
+
+    <!-- 底部控制区：进度条 + 时间 + 操作按钮，全透明背景 -->
+    <LinearLayout
+        android:id="@+id/bottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:background="@android:color/transparent"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="12dp"
+        android:visibility="gone">
+
+        <!-- 时间行：左当前时间，进度条，右总时长 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvCurrentTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:text="00:00" />
+
+            <SeekBar
+                android:id="@+id/seekBar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:thumbTint="@color/white"
+                android:progressTint="@color/white"
+                android:progressBackgroundTint="#55FFFFFF"
+                android:thumb="@android:drawable/ic_media_play"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp" />
+
+            <TextView
+                android:id="@+id/tvTotalTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:text="00:00" />
+        </LinearLayout>
+
+        <!-- 操作按钮行：居中 快退 / 暂停-播放 / 快进 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="@android:color/transparent"
+            android:paddingTop="4dp">
+
+            <ImageView
+                android:id="@+id/btnRewind"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@android:drawable/ic_media_rew"
+                android:contentDescription="快退"
+                android:padding="8dp"
+                android:tint="@color/white"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+
+            <ImageView
+                android:id="@+id/btnPlayPause"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:src="@android:drawable/ic_media_play"
+                android:contentDescription="播放/暂停"
+                android:padding="8dp"
+                android:layout_marginStart="32dp"
+                android:layout_marginEnd="32dp"
+                android:tint="@color/white"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+
+            <ImageView
+                android:id="@+id/btnFastForward"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@android:drawable/ic_media_ff"
+                android:contentDescription="快进"
+                android:padding="8dp"
+                android:tint="@color/white"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>
