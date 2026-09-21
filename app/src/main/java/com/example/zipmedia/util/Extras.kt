@@ -8,4 +8,6 @@ object Extras {
     const val ENTRY_NAME = "entry_name"      // 条目显示名
     const val IMAGES = "images"              // 图片条目列表（Parcelable ArrayList）
     const val INDEX = "index"                // 当前索引
+    const val FOLDER_ID = "folder_id"        // 收藏夹 ID
+    const val FOLDER_NAME = "folder_name"    // 收藏夹名称
 }
