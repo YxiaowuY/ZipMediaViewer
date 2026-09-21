@@ -53,22 +53,49 @@ class VideoPlayerActivity : AppCompatActivity() {
 
         updateSpeedLabel()
 
-        // 播放器控制条：显示快退/快进按钮
-        binding.playerView.setShowRewindButton(true)
-        binding.playerView.setShowFastForwardButton(true)
+        // 禁用 PlayerView 内置的快退/快进按钮（改用下方独立按钮栏）
+        binding.playerView.setShowRewindButton(false)
+        binding.playerView.setShowFastForwardButton(false)
         binding.playerView.setShowNextButton(false)
         binding.playerView.setShowPreviousButton(false)
+        // 隐藏 PlayerView 内置的播放/暂停按钮（避免与下方重复）
+        binding.playerView.setShowPlayButton(false)
 
-        // 顶部信息栏与控制条联动显隐（点画面显示，自动/手动隐藏时一起隐藏，符合常规播放器）
+        // 顶部信息栏 + 底部控制栏 与 PlayerView 内置控制条联动显隐
         binding.playerView.setControllerVisibilityListener(
             object : PlayerView.ControllerVisibilityListener {
                 override fun onVisibilityChanged(visibility: Int) {
                     binding.topBar.visibility = visibility
+                    binding.bottomControlBar.visibility = visibility
                 }
             }
         )
         binding.playerView.setControllerAutoShow(true)
-        // 控制条在画面触摸时切换显隐（默认 3 秒后自动隐藏）
+
+        // 底部按钮：快退 10 秒 / 暂停-播放 / 快进 10 秒
+        binding.btnRewind.setOnClickListener {
+            player?.let {
+                val pos = (it.currentPosition - 10_000L).coerceAtLeast(0L)
+                it.seekTo(pos)
+                binding.playerView.showController()
+            }
+        }
+        binding.btnFastForward.setOnClickListener {
+            player?.let {
+                val pos = (it.currentPosition + 10_000L).coerceAtMost(it.duration.coerceAtLeast(0L))
+                it.seekTo(pos)
+                binding.playerView.showController()
+            }
+        }
+        binding.btnPlayPause.setOnClickListener {
+            val p = player ?: return@setOnClickListener
+            if (p.isPlaying) {
+                p.pause()
+            } else {
+                p.play()
+            }
+            binding.playerView.showController()
+        }
 
         binding.btnSpeed.setOnClickListener { cycleSpeed() }
 
@@ -130,9 +157,17 @@ class VideoPlayerActivity : AppCompatActivity() {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY) {
                     binding.loadingOverlay.visibility = View.GONE
-                    // 顶栏显隐由控制条联动决定，这里不再强制显示
                     binding.playerView.showController()
                 }
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                // 播放中显示暂停图标；暂停时显示播放图标
+                val iconRes = if (isPlaying)
+                    android.R.drawable.ic_media_pause
+                else
+                    android.R.drawable.ic_media_play
+                binding.btnPlayPause.setImageResource(iconRes)
             }
         })
         exo.setMediaItem(MediaItem.fromUri(Uri.fromFile(file)))
