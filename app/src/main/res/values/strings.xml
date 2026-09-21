@@ -40,6 +40,10 @@
     <string name="empty">空</string>
     <string name="none_archive_found">所选文件夹中没有找到压缩包</string>
     <string name="archive_pick_title">选择要打开的压缩包</string>
+    <string name="folder_preview_title">预览文件夹</string>
+    <string name="folder_not_set">未选择文件夹</string>
+    <string name="action_open_history">历史记录</string>
+    <string name="cache_file_missing">缓存文件已不存在，请重新选择压缩包</string>
     <string name="all_media">全部媒体</string>
     <string name="image_only">仅图片</string>
     <string name="video_only">仅视频</string>
