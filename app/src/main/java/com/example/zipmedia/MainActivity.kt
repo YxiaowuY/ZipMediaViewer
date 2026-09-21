@@ -58,6 +58,11 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, HistoryActivity::class.java))
         }
 
+        // 跳转到收藏夹窗口
+        binding.btnFavorites.setOnClickListener {
+            startActivity(Intent(this, FavoriteActivity::class.java))
+        }
+
         binding.btnClearCache.setOnClickListener { showClearCacheDialog() }
 
         binding.tvVersion.text = "v${BuildConfig.VERSION_NAME}"
