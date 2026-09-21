@@ -21,7 +21,8 @@ class RarArchiveReader(private val file: File) : ArchiveReader {
         val result = ArrayList<ArchiveEntry>(64)
         for (header: FileHeader in headers) {
             val path = header.fileNameString
-            val modified = runCatching { header.mTime?.timeInMillis }.getOrNull() ?: 0L
+            // junrar 不同版本的 mTime 类型不一致，这里统一不读取修改时间（排序仍可按名称/大小）
+            val modified = 0L
             result.add(
                 ArchiveEntry(
                     path = path,
