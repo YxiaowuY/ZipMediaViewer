@@ -4,14 +4,16 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.View
+import android.widget.SeekBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
 import com.example.zipmedia.data.ArchiveEntry
 import com.example.zipmedia.data.ArchiveLoader
 import com.example.zipmedia.databinding.ActivityVideoPlayerBinding
@@ -35,6 +37,17 @@ class VideoPlayerActivity : AppCompatActivity() {
     private val speedLevels = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f, 3.0f, 4.0f, 5.0f)
     private var speedIndex = 2 // 默认 1.0x
 
+    private val handler = Handler(Looper.getMainLooper())
+    private var isSeeking = false
+    private var barsVisible = false
+    private val hideBarsRunnable = Runnable { hideBars() }
+    private val updateProgressRunnable = object : Runnable {
+        override fun run() {
+            updateProgress()
+            if (!isSeeking) handler.postDelayed(this, 300)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityVideoPlayerBinding.inflate(layoutInflater)
@@ -49,55 +62,77 @@ class VideoPlayerActivity : AppCompatActivity() {
 
         binding.tvFileName.text = entryName
         binding.btnBack.setOnClickListener { finish() }
-        binding.topBar.visibility = View.GONE
 
         updateSpeedLabel()
 
-        // 禁用 PlayerView 内置的快退/快进按钮（改用下方独立按钮栏）
-        binding.playerView.setShowRewindButton(false)
-        binding.playerView.setShowFastForwardButton(false)
-        binding.playerView.setShowNextButton(false)
-        binding.playerView.setShowPreviousButton(false)
+        // 顶部栏：返回 + 文件名 + 倍速胶囊
+        binding.btnSpeed.setOnClickListener { cycleSpeed() }
 
-        // 顶部信息栏 + 底部控制栏 与 PlayerView 内置控制条联动显隐
-        binding.playerView.setControllerVisibilityListener(
-            object : PlayerView.ControllerVisibilityListener {
-                override fun onVisibilityChanged(visibility: Int) {
-                    binding.topBar.visibility = visibility
-                    binding.bottomControlBar.visibility = visibility
-                }
-            }
-        )
-        binding.playerView.setControllerAutoShow(true)
-
-        // 底部按钮：快退 10 秒 / 暂停-播放 / 快进 10 秒
+        // 底部按钮
         binding.btnRewind.setOnClickListener {
             player?.let {
                 val pos = (it.currentPosition - 10_000L).coerceAtLeast(0L)
-                it.seekTo(pos)
-                binding.playerView.showController()
+                it.seekTo(pos); showBars()
             }
         }
         binding.btnFastForward.setOnClickListener {
             player?.let {
                 val pos = (it.currentPosition + 10_000L).coerceAtMost(it.duration.coerceAtLeast(0L))
-                it.seekTo(pos)
-                binding.playerView.showController()
+                it.seekTo(pos); showBars()
             }
         }
         binding.btnPlayPause.setOnClickListener {
             val p = player ?: return@setOnClickListener
-            if (p.isPlaying) {
-                p.pause()
-            } else {
-                p.play()
-            }
-            binding.playerView.showController()
+            if (p.isPlaying) p.pause() else p.play()
+            showBars()
         }
 
-        binding.btnSpeed.setOnClickListener { cycleSpeed() }
+        // SeekBar 拖动
+        binding.seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    val duration = player?.duration ?: 0L
+                    val pos = (progress * duration / 1000L).coerceAtLeast(0L)
+                    binding.tvCurrentTime.text = formatTime(pos)
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                isSeeking = true
+                handler.removeCallbacks(updateProgressRunnable)
+                showBars()
+            }
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                isSeeking = false
+                val duration = player?.duration ?: 0L
+                if (duration > 0) {
+                    val pos = (seekBar?.progress ?: 0) * duration / 1000L
+                    player?.seekTo(pos)
+                }
+                handler.post(updateProgressRunnable)
+                showBars()
+            }
+        })
+
+        // 点击视频画面切换控制条显隐
+        binding.playerView.setOnClickListener {
+            if (barsVisible) hideBars() else showBars()
+        }
 
         setupPlayer(entryPath)
+    }
+
+    private fun showBars() {
+        barsVisible = true
+        binding.topBar.visibility = View.VISIBLE
+        binding.bottomBar.visibility = View.VISIBLE
+        handler.removeCallbacks(hideBarsRunnable)
+        handler.postDelayed(hideBarsRunnable, 3500)
+    }
+
+    private fun hideBars() {
+        barsVisible = false
+        binding.topBar.visibility = View.GONE
+        binding.bottomBar.visibility = View.GONE
     }
 
     private fun cycleSpeed() {
@@ -105,19 +140,36 @@ class VideoPlayerActivity : AppCompatActivity() {
         speedIndex = (speedIndex + 1) % speedLevels.size
         player?.setPlaybackSpeed(speedLevels[speedIndex])
         updateSpeedLabel()
+        showBars()
     }
 
     private fun updateSpeedLabel() {
         val rate = speedLevels[speedIndex]
         val label = if (rate % 1f == 0f) "${rate.toInt()}x" else "${rate}x"
-        binding.btnSpeed.text = getString(R.string.speed_hint) + " " + label
+        binding.btnSpeed.text = label
+    }
+
+    private fun formatTime(ms: Long): String {
+        val s = ms / 1000L
+        val m = s / 60; val sec = s % 60
+        return "%02d:%02d".format(m, sec)
+    }
+
+    private fun updateProgress() {
+        val p = player ?: return
+        val duration = p.duration
+        if (duration > 0 && !isSeeking) {
+            val pos = p.currentPosition.coerceAtLeast(0L)
+            binding.seekBar.max = (duration / 1000L).toInt()
+            binding.seekBar.progress = (pos / 1000L).toInt()
+            binding.tvCurrentTime.text = formatTime(pos)
+            binding.tvTotalTime.text = formatTime(duration)
+        }
     }
 
     private fun setupPlayer(entryPath: String) {
         if (!cacheFile.exists()) {
-            toast("压缩包文件不存在")
-            finish()
-            return
+            toast("压缩包文件不存在"); finish(); return
         }
         binding.loadingOverlay.visibility = View.VISIBLE
         lifecycleScope.launch {
@@ -127,13 +179,9 @@ class VideoPlayerActivity : AppCompatActivity() {
                         CacheUtils.videoDir(this@VideoPlayerActivity),
                         "${UUID.randomUUID()}.mp4"
                     )
-                    ArchiveLoader.open(cacheFile).use { reader ->
-                        reader.extractEntry(entryPath, dest)
-                    }
+                    ArchiveLoader.open(cacheFile).use { reader -> reader.extractEntry(entryPath, dest) }
                     dest
-                } catch (e: Exception) {
-                    null
-                }
+                } catch (e: Exception) { null }
             }
             if (file == null) {
                 toast(getString(R.string.extract_failed))
@@ -147,25 +195,20 @@ class VideoPlayerActivity : AppCompatActivity() {
     }
 
     private fun playFile(file: File) {
-        val exo = ExoPlayer.Builder(this).build().also {
-            player = it
-        }
+        val exo = ExoPlayer.Builder(this).build().also { player = it }
         binding.playerView.player = exo
         exo.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY) {
                     binding.loadingOverlay.visibility = View.GONE
-                    binding.playerView.showController()
+                    updateProgress()
+                    handler.post(updateProgressRunnable)
+                    showBars()
                 }
             }
-
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                // 播放中显示暂停图标；暂停时显示播放图标
-                val iconRes = if (isPlaying)
-                    android.R.drawable.ic_media_pause
-                else
-                    android.R.drawable.ic_media_play
-                binding.btnPlayPause.setImageResource(iconRes)
+                val icon = if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
+                binding.btnPlayPause.setImageResource(icon)
             }
         })
         exo.setMediaItem(MediaItem.fromUri(Uri.fromFile(file)))
@@ -174,9 +217,9 @@ class VideoPlayerActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        handler.removeCallbacksAndMessages(null)
         player?.release()
         player = null
-        // 播放结束后清理抽取的临时视频文件
         extractedFile?.takeIf { it.exists() }?.let { runCatching { it.delete() } }
         Immersive.exit(this)
         super.onDestroy()
