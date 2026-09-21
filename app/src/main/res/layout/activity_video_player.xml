@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="@color/screen_black">
 
-    <!-- 视频画面 -->
+    <!-- 视频画面：使用 TextureView 以支持通过按钮旋转 -->
     <androidx.media3.ui.PlayerView
         android:id="@+id/playerView"
         android:layout_width="match_parent"
@@ -13,6 +13,7 @@
         android:background="@color/screen_black"
         app:show_buffering="when_playing"
         app:resize_mode="fit"
+        app:surface_type="texture_view"
         app:use_controller="false" />
 
     <!-- 加载遮罩 -->
@@ -86,6 +87,15 @@
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
             android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless" />
+
+        <ImageView
+            android:id="@+id/btnRotate"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@drawable/ic_rotate"
+            android:contentDescription="@string/action_rotate"
+            android:padding="10dp"
             android:background="?attr/selectableItemBackgroundBorderless" />
     </LinearLayout>
 
