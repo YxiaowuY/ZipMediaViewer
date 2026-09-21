@@ -131,10 +131,9 @@ class ImageViewerActivity : AppCompatActivity() {
             ImageMode.FILL -> maxOf(vw.toFloat() / sourceW, vh.toFloat() / sourceH)
             ImageMode.FULL -> 1f
         }
-        iv.setScaleAndCenter(
+        iv.animateScaleAndCenter(
             scale.coerceAtLeast(0.01f),
-            com.davemorrissey.labs.subscaleview.PointF.of(vw / 2f, vh / 2f),
-            true
+            com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.PointF.of(vw / 2f, vh / 2f)
         )
     }
 
@@ -147,23 +146,6 @@ class ImageViewerActivity : AppCompatActivity() {
                 ItemImagePageBinding.inflate(layoutInflater, parent, false)
             )
             attachZoomAndTap(holder)
-            holder.binding.imageView.setOnImageEventListener(
-                object : com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.OnImageEventListener {
-                    override fun onReady(event: com.davemorrissey.labs.subscaleview.ImageViewEvent) {
-                        sourceW = event.sWidth
-                        sourceH = event.sHeight
-                        if (holder === currentHolder) applyMode()
-                    }
-                    override fun onImageLoaded(
-                        position: com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.Position?,
-                        correctWidth: Boolean
-                    ) {}
-                    override fun onPreviewLoadError(e: Exception) {}
-                    override fun onImageLoadError(e: Exception) {}
-                    override fun onTileLoadError(e: Exception) {}
-                    override fun onTileLoaded() {}
-                }
-            )
             return holder
         }
 
@@ -187,7 +169,10 @@ class ImageViewerActivity : AppCompatActivity() {
                     holder.binding.progress.visibility = View.GONE
                     val bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                     if (bmp != null) {
+                        sourceW = bmp.width
+                        sourceH = bmp.height
                         holder.binding.imageView.setImage(ImageSource.bitmap(bmp))
+                        if (holder === currentHolder) applyMode()
                     } else {
                         holder.binding.tvError.visibility = View.VISIBLE
                     }
