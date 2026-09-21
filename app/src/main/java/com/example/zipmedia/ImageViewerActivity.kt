@@ -131,10 +131,7 @@ class ImageViewerActivity : AppCompatActivity() {
             ImageMode.FILL -> maxOf(vw.toFloat() / sourceW, vh.toFloat() / sourceH)
             ImageMode.FULL -> 1f
         }
-        iv.animateScaleAndCenter(
-            scale.coerceAtLeast(0.01f),
-            com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.PointF.of(vw / 2f, vh / 2f)
-        )
+        iv.animateScaleAndCenter(scale.coerceAtLeast(0.01f), null)
     }
 
     private inner class PagerAdapter : RecyclerView.Adapter<PageHolder>() {
