@@ -11,6 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import com.example.zipmedia.data.ArchiveEntry
 import com.example.zipmedia.data.ArchiveLoader
 import com.example.zipmedia.databinding.ActivityVideoPlayerBinding
@@ -59,9 +60,13 @@ class VideoPlayerActivity : AppCompatActivity() {
         binding.playerView.setShowPreviousButton(false)
 
         // 顶部信息栏与控制条联动显隐（点画面显示，自动/手动隐藏时一起隐藏，符合常规播放器）
-        binding.playerView.setControllerVisibilityListener { visibility ->
-            binding.topBar.visibility = visibility
-        }
+        binding.playerView.setControllerVisibilityListener(
+            object : PlayerView.ControllerVisibilityListener {
+                override fun onVisibilityChanged(visibility: Int) {
+                    binding.topBar.visibility = visibility
+                }
+            }
+        )
         binding.playerView.setControllerAutoShow(true)
         // 控制条在画面触摸时切换显隐（默认 3 秒后自动隐藏）
 
