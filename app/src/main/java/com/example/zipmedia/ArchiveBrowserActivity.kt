@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.example.zipmedia.data.ArchiveEntry
 import com.example.zipmedia.data.ArchiveLoader
 import com.example.zipmedia.data.FavoriteRepository
+import com.example.zipmedia.data.MediaPositionRepository
 import com.example.zipmedia.data.MediaType
 import com.example.zipmedia.databinding.ActivityBrowserBinding
 import com.example.zipmedia.ui.MediaAdapter
@@ -34,6 +35,7 @@ class ArchiveBrowserActivity : AppCompatActivity() {
     private var filterMode: FilterMode = FilterMode.ALL
     private lateinit var adapter: MediaAdapter
     private lateinit var favoriteRepo: FavoriteRepository
+    private lateinit var mediaPositionRepo: MediaPositionRepository
     private var sourceName = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,6 +54,7 @@ class ArchiveBrowserActivity : AppCompatActivity() {
         }
 
         favoriteRepo = FavoriteRepository(this)
+        mediaPositionRepo = MediaPositionRepository(this)
 
         sortMode = Prefs.sort(this)
         filterMode = Prefs.filter(this)
@@ -94,6 +97,7 @@ class ArchiveBrowserActivity : AppCompatActivity() {
             }
             allEntries = list
             applySortFilter()
+            restoreLastImagePosition()
             binding.loadingContainer.visibility = View.GONE
         }
     }
@@ -118,6 +122,19 @@ class ArchiveBrowserActivity : AppCompatActivity() {
         binding.tvEmpty.visibility = if (sorted.isEmpty()) View.VISIBLE else View.GONE
         if (sorted.isEmpty()) {
             toast("没有符合当前筛选的媒体")
+        }
+    }
+
+    /** 打开压缩包后，滚动定位到上次浏览的图片（若存在） */
+    private fun restoreLastImagePosition() {
+        lifecycleScope.launch {
+            val entryPath = withContext(Dispatchers.IO) {
+                mediaPositionRepo.getLastImage(cacheFile.absolutePath)
+            } ?: return@launch
+            val idx = sorted.indexOfFirst { it.path == entryPath }
+            if (idx >= 0) {
+                binding.rvMedia.scrollToPosition(idx)
+            }
         }
     }
 
