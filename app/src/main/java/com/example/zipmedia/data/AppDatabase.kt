@@ -9,14 +9,16 @@ import androidx.room.RoomDatabase
     entities = [
         HistoryEntity::class,
         FavoriteFolderEntity::class,
-        FavoriteItemEntity::class
+        FavoriteItemEntity::class,
+        MediaPositionEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun historyDao(): HistoryDao
     abstract fun favoriteDao(): FavoriteDao
+    abstract fun mediaPositionDao(): MediaPositionDao
 
     companion object {
         @Volatile
