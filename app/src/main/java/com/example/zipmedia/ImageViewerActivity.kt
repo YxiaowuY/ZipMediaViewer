@@ -15,6 +15,7 @@ import com.davemorrissey.labs.subscaleview.ImageSource
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import com.example.zipmedia.data.ArchiveEntry
 import com.example.zipmedia.data.ArchiveLoader
+import com.example.zipmedia.data.MediaPositionRepository
 import com.example.zipmedia.databinding.ActivityImageViewerBinding
 import com.example.zipmedia.databinding.ItemImagePageBinding
 import com.example.zipmedia.util.Extras
@@ -31,6 +32,8 @@ class ImageViewerActivity : AppCompatActivity() {
     private var startIndex: Int = 0
     private var barsVisible = false // 顶栏默认隐藏，全屏沉浸
     private var adapter: PagerAdapter? = null
+
+    private val mediaPositionRepo by lazy { MediaPositionRepository(this) }
 
     private val IMG_MAX = 80L * 1024 * 1024 // 单张超过约 80MB 则放弃整图加载
 
@@ -95,6 +98,7 @@ class ImageViewerActivity : AppCompatActivity() {
                 adapter?.currentHolder?.binding?.imageView?.setOrientation(0)
                 updateHeader(position)
                 applyMode()
+                rememberImagePosition(position)
             }
         })
         if (images.indices.contains(startIndex)) {
@@ -108,6 +112,17 @@ class ImageViewerActivity : AppCompatActivity() {
         if (images.indices.contains(position)) {
             binding.tvFileName.text = images[position].name
             binding.tvCounter.text = "${position + 1}/${images.size}"
+        }
+    }
+
+    /** 翻页时记录当前图片位置（下次打开该压缩包自动定位） */
+    private fun rememberImagePosition(position: Int) {
+        if (images.indices.contains(position)) {
+            lifecycleScope.launch {
+                withContext(Dispatchers.IO) {
+                    mediaPositionRepo.saveImage(cacheFile.absolutePath, images[position].path)
+                }
+            }
         }
     }
 
