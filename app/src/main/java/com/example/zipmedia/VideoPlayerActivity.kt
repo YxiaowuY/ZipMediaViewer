@@ -6,6 +6,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.View
 import android.widget.SeekBar
 import android.widget.Toast
@@ -41,6 +43,12 @@ class VideoPlayerActivity : AppCompatActivity() {
     private var isSeeking = false       // 用户正在拖动或 seek 还未完成
     private var pendingSeekMs = -1L     // 用户 seek 的目标位置（毫秒）
     private var barsVisible = false
+
+    // 屏幕手势 seek 状态
+    private var downX = 0f              // 按下时的 X 坐标
+    private var dragStartPosMs = 0L     // 拖拽起始播放位置（毫秒）
+    private var lastSeekTargetMs = -1L  // 拖拽过程中的目标位置，-1 表示未拖拽
+    private var flingSeeked = false     // 本次手势已通过 fling 快进/快退
     private val hideBarsRunnable = Runnable { hideBars() }
     private val updateProgressRunnable = object : Runnable {
         override fun run() {
@@ -124,8 +132,15 @@ class VideoPlayerActivity : AppCompatActivity() {
             }
         })
 
-        binding.playerView.setOnClickListener {
-            if (barsVisible) hideBars() else showBars()
+        // 屏幕手势：单击切换控制条；左右滑动快进/快退；按住水平拖拽可精确 seek
+        binding.playerView.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+            if (event.actionMasked == MotionEvent.ACTION_UP
+                || event.actionMasked == MotionEvent.ACTION_CANCEL
+            ) {
+                finalizeDragSeek()
+            }
+            true
         }
 
         setupPlayer(entryPath)
@@ -143,6 +158,97 @@ class VideoPlayerActivity : AppCompatActivity() {
         barsVisible = false
         binding.topBar.visibility = View.GONE
         binding.bottomBar.visibility = View.GONE
+    }
+
+    // ===== 屏幕手势 seek =====
+    private val gestureDetector by lazy {
+        GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(e: MotionEvent): Boolean {
+                downX = e.x
+                val p = player
+                if (p != null && p.duration > 0) {
+                    dragStartPosMs = p.currentPosition.coerceAtLeast(0L)
+                    lastSeekTargetMs = -1L
+                    isSeeking = true
+                    handler.removeCallbacks(updateProgressRunnable)
+                }
+                return true
+            }
+
+            // 按住水平拖拽：手指移动映射到整段进度，实时预览
+            override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
+                dragSeekPreview(e2.x)
+                return true
+            }
+
+            // 快速左右滑动：快进/快退（向右快进、向左快退）固定 10 秒
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                flingSeek(velocityX)
+                return true
+            }
+
+            // 单击：切换控制条
+            override fun onSingleTapUp(e: MotionEvent): Boolean {
+                if (barsVisible) hideBars() else showBars()
+                return true
+            }
+        })
+    }
+
+    /** 快速滑动：向右快进、向左快退，固定 10 秒 */
+    private fun flingSeek(velocityX: Float) {
+        val p = player ?: return
+        val duration = p.duration
+        if (duration <= 0) return
+        val target = if (velocityX < 0)
+            (p.currentPosition - 10_000L).coerceAtLeast(0L)
+        else
+            (p.currentPosition + 10_000L).coerceAtMost(duration.coerceAtLeast(0L))
+        flingSeeked = true
+        pendingSeekMs = target
+        p.seekTo(target)
+        binding.seekBar.progress = (target / 1000L).toInt().coerceAtMost(binding.seekBar.max)
+        binding.tvCurrentTime.text = formatTime(target)
+        showBars()
+    }
+
+    /** 按住拖拽：水平移动距离按比例映射到播放进度（右移快进、左移快退） */
+    private fun dragSeekPreview(x: Float) {
+        val p = player ?: return
+        val duration = p.duration
+        if (duration <= 0) return
+        val width = binding.playerView.width.toFloat()
+        if (width <= 0) return
+        val moveX = x - downX
+        val target = (dragStartPosMs + (moveX / width * duration).toLong()).coerceIn(0L, duration)
+        lastSeekTargetMs = target
+        binding.seekBar.progress = (target / 1000L).toInt().coerceAtMost(binding.seekBar.max)
+        binding.tvCurrentTime.text = formatTime(target)
+    }
+
+    /** 手指抬起：执行一次最终 seek；纯点击则解除 seek 锁定并恢复进度刷新 */
+    private fun finalizeDragSeek() {
+        // fling 已执行 seek，只需复位标志，isSeeking 由 onPlaybackStateChanged 解锁
+        if (flingSeeked) {
+            flingSeeked = false
+            showBars()
+            return
+        }
+        val p = player
+        val dragTarget = lastSeekTargetMs
+        lastSeekTargetMs = -1L
+        if (p != null && dragTarget >= 0 && p.duration > 0) {
+            pendingSeekMs = dragTarget
+            p.seekTo(dragTarget)
+            binding.seekBar.progress = (dragTarget / 1000L).toInt().coerceAtMost(binding.seekBar.max)
+            binding.tvCurrentTime.text = formatTime(dragTarget)
+            // isSeeking 保持 true，等 onPlaybackStateChanged READY 解锁
+        } else {
+            // 纯点击/无 seek：解除锁定并恢复进度刷新
+            isSeeking = false
+            handler.post(updateProgressRunnable)
+        }
+        showBars()
     }
 
     private fun cycleSpeed() {
