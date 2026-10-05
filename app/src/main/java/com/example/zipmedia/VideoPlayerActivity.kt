@@ -18,11 +18,14 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.zipmedia.data.ArchiveEntry
 import com.example.zipmedia.data.ArchiveLoader
+import com.example.zipmedia.data.MediaPositionRepository
 import com.example.zipmedia.databinding.ActivityVideoPlayerBinding
 import com.example.zipmedia.util.CacheUtils
 import com.example.zipmedia.util.Extras
 import com.example.zipmedia.util.Immersive
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -34,6 +37,9 @@ class VideoPlayerActivity : AppCompatActivity() {
     private lateinit var cacheFile: File
     private var player: ExoPlayer? = null
     private var extractedFile: File? = null
+    private var entryPath = ""            // 当前视频条目路径（播放进度记忆用）
+    private var resumeMs = -1L            // 上次播放进度（毫秒），-1 表示从头开始
+    private lateinit var mediaPositionRepo: MediaPositionRepository
 
     // 支持的最高倍速为 5 倍，可循环切换（0.5x ~ 5x）
     private val speedLevels = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f, 3.0f, 4.0f, 5.0f)
@@ -63,8 +69,9 @@ class VideoPlayerActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         cacheFile = File(intent.getStringExtra(Extras.CACHE_PATH) ?: "")
-        val entryPath = intent.getStringExtra(Extras.ENTRY_PATH) ?: ""
+        entryPath = intent.getStringExtra(Extras.ENTRY_PATH) ?: ""
         val entryName = intent.getStringExtra(Extras.ENTRY_NAME) ?: "video"
+        mediaPositionRepo = MediaPositionRepository(this)
 
         Immersive.enter(this)
         Immersive.keepScreenOn(this, true)
@@ -312,6 +319,10 @@ class VideoPlayerActivity : AppCompatActivity() {
                 return@launch
             }
             extractedFile = file
+            // 查询上次播放进度，用于自动续播（无记录则为 -1，从头开始）
+            resumeMs = withContext(Dispatchers.IO) {
+                mediaPositionRepo.getVideo(cacheFile.absolutePath, entryPath) ?: -1L
+            }
             playFile(file)
         }
     }
@@ -340,17 +351,41 @@ class VideoPlayerActivity : AppCompatActivity() {
             }
         })
         exo.setMediaItem(MediaItem.fromUri(Uri.fromFile(file)))
+        // 上次有播放进度则自动续播（ExoPlayer 支持 prepare 前设置初始位置）
+        if (resumeMs > 0) {
+            exo.seekTo(resumeMs)
+            resumeMs = -1L
+        }
         exo.prepare()
         exo.playWhenReady = true
     }
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
+        savePlaybackProgress()
         player?.release()
         player = null
         extractedFile?.takeIf { it.exists() }?.let { runCatching { it.delete() } }
         Immersive.exit(this)
         super.onDestroy()
+    }
+
+    /** 退出时记录播放进度；接近结尾视为看完并清除记录 */
+    private fun savePlaybackProgress() {
+        val p = player ?: return
+        val dur = p.duration
+        val pos = p.currentPosition.coerceAtLeast(0L)
+        if (dur <= 0 || entryPath.isEmpty()) return
+        // 用独立作用域，确保 Activity 销毁时也能写入
+        if (pos >= dur - 3000 && pos > 0) {
+            CoroutineScope(Dispatchers.IO + Job()).launch {
+                mediaPositionRepo.clearVideo(cacheFile.absolutePath, entryPath)
+            }
+        } else if (pos in 1 until dur - 3000) {
+            CoroutineScope(Dispatchers.IO + Job()).launch {
+                mediaPositionRepo.saveVideo(cacheFile.absolutePath, entryPath, pos)
+            }
+        }
     }
 
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
